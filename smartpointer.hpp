@@ -70,17 +70,67 @@ class CooperativePointer
 {
 public:
 private:
-    DataType*     rawPointer;
     ControlBlock* controlBlock;
 };
 
 
+template <typename DataType>
 class ControlBlock
 {
+public:
+    // Constructors
+    ControlBlock(DataType* rawPointer);
+
+    // Destructors
+    ~ControlBlock();
+
+    // Observers
+    DataType*     getRawPointer();
+    unsigned long getCounter();
+
+    // Friends
+    friend CooperativePointer<DataType>;
+
+private:
+    // Modifiers
+    void increaseCounter();
+    void decreaseCounter();
+
+    unsigned long counter;
+    DataType*     rawPointer;
+};
+
+
+template <typename DataType>
+class ControlBlock<DataType[]>
+{
+public:
+    // Constructors
+    ControlBlock(DataType* rawPointer);
+
+    // Destructors
+    ~ControlBlock();
+
+    // Observers
+    DataType*     getRawPointer();
+    unsigned long getCounter();
+
+    // Friends
+    friend CooperativePointer<DataType[]>;
+
+private:
+    // Modifiers
+    void increaseCounter();
+    void decreaseCounter();
+
+    unsigned long counter;
+    DataType*     rawPointer;
 };
 
 
 // Implementations
+
+// ExclusivePointer<DataType>
 
 template <typename DataType>
 ExclusivePointer<DataType>::ExclusivePointer(DataType* rawPointer)
@@ -151,8 +201,7 @@ DataType* ExclusivePointer<DataType>::operator->()
     return rawPointer;
 }
 
-
-// array specialization
+// ExclusivePointer<DataType[]>
 
 template <typename DataType>
 ExclusivePointer<DataType[]>::ExclusivePointer(DataType* rawPointer)
@@ -228,6 +277,106 @@ template <typename DataType>
 DataType& ExclusivePointer<DataType[]>::operator[](int index)
 {
     return rawPointer[index];
+}
+
+// ControlBlock<DataType>
+
+template <typename DataType>
+ControlBlock<DataType>::ControlBlock(DataType* rawPointer)
+    : rawPointer(rawPointer)
+    , counter(1)
+{
+}
+
+
+template <typename DataType>
+ControlBlock<DataType>::~ControlBlock()
+{
+}
+
+
+template <typename DataType>
+DataType* ControlBlock<DataType>::getRawPointer()
+{
+    return rawPointer;
+}
+
+
+template <typename DataType>
+unsigned long ControlBlock<DataType>::getCounter()
+{
+    return counter;
+}
+
+
+template <typename DataType>
+void ControlBlock<DataType>::increaseCounter()
+{
+    counter++;
+}
+
+
+template <typename DataType>
+void ControlBlock<DataType>::decreaseCounter()
+{
+    counter--;
+
+    if (counter <= 0)
+    {
+        delete rawPointer;
+        rawPointer = nullptr;
+        delete this;    // suicide
+    }
+}
+
+// ControlBlock<DataType[]>
+
+template <typename DataType>
+ControlBlock<DataType[]>::ControlBlock(DataType* rawPointer)
+    : rawPointer(rawPointer)
+    , counter(1)
+{
+}
+
+
+template <typename DataType>
+ControlBlock<DataType[]>::~ControlBlock()
+{
+}
+
+
+template <typename DataType>
+DataType* ControlBlock<DataType[]>::getRawPointer()
+{
+    return rawPointer;
+}
+
+
+template <typename DataType>
+unsigned long ControlBlock<DataType[]>::getCounter()
+{
+    return counter;
+}
+
+
+template <typename DataType>
+void ControlBlock<DataType[]>::increaseCounter()
+{
+    counter++;
+}
+
+
+template <typename DataType>
+void ControlBlock<DataType[]>::decreaseCounter()
+{
+    counter--;
+
+    if (counter <= 0)
+    {
+        delete[] rawPointer;
+        rawPointer = nullptr;
+        delete this;    // suicide
+    }
 }
 
 
