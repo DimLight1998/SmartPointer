@@ -33,5 +33,12 @@ int main()
         cout << boolalpha << bp[i] << endl;
     }
 
+    CooperativePointer<int> ic(new int(9));
+    cout << *ic << endl;
+    CooperativePointer<int> ic2(ic);
+    cout << ic2.getCounter() << endl;
+    CooperativePointer<int> icw(ic2, true);
+    cout << icw.getCounter() << endl;
+
     return 0;
 }

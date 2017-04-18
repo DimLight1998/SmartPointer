@@ -1,7 +1,12 @@
 #ifndef SMARTPOINTER_HPP
 #define SMARTPOINTER_HPP
 
+template <typename DataType>
 class ControlBlock;
+
+
+template <typename DataType>
+class ControlBlock<DataType[]>;
 
 
 template <typename DataType>
@@ -65,12 +70,46 @@ private:
 };
 
 
+// TODO: finish this
 template <typename DataType>
 class CooperativePointer
 {
 public:
+    // Constructors
+    CooperativePointer(DataType* rawPointer = nullptr);
+    CooperativePointer(const CooperativePointer<DataType>& srcPointer = nullptr, bool isWeak = false);
+
+    // Destructors
+    ~CooperativePointer();
+
+    // Observers
+    DataType*     getRawPointer();
+    unsigned long getCounter();
+    bool          isUnique();
+
+    // Modifiers
+    void setRawPointerForThis(DataType* newPointer);
+    void setRawPointerForAll(DataType* newPointer);
+    void release();
+
+    // Operators
+    DataType& operator*();
+    DataType* operator->();
+    operator bool();
+
 private:
-    ControlBlock* controlBlock;
+    ControlBlock<DataType>* controlBlock;
+    bool                    isWeak;
+};
+
+
+// TODO: finish this
+template <typename DataType>
+class CooperativePointer<DataType[]>
+{
+public:
+private:
+    ControlBlock<DataType[]>* controlBlock;
 };
 
 
@@ -87,6 +126,9 @@ public:
     // Observers
     DataType*     getRawPointer();
     unsigned long getCounter();
+
+    // Modifiers
+    void setRawPointer(DataType* newPointer);
 
     // Friends
     friend CooperativePointer<DataType>;
@@ -114,6 +156,9 @@ public:
     // Observers
     DataType*     getRawPointer();
     unsigned long getCounter();
+
+    // Modifiers
+    void setRawPointer(DataType* newPointer);
 
     // Friends
     friend CooperativePointer<DataType[]>;
@@ -310,6 +355,13 @@ unsigned long ControlBlock<DataType>::getCounter()
 
 
 template <typename DataType>
+void ControlBlock<DataType>::setRawPointer(DataType* newPointer)
+{
+    rawPointer = newPointer;
+}
+
+
+template <typename DataType>
 void ControlBlock<DataType>::increaseCounter()
 {
     counter++;
@@ -360,6 +412,13 @@ unsigned long ControlBlock<DataType[]>::getCounter()
 
 
 template <typename DataType>
+void ControlBlock<DataType[]>::setRawPointer(DataType* newPointer)
+{
+    rawPointer = newPointer;
+}
+
+
+template <typename DataType>
 void ControlBlock<DataType[]>::increaseCounter()
 {
     counter++;
@@ -379,5 +438,137 @@ void ControlBlock<DataType[]>::decreaseCounter()
     }
 }
 
+// CooperativePointer<DataType>
+
+template <typename DataType>
+CooperativePointer<DataType>::CooperativePointer(DataType* rawPointer)
+// cannot construct a weak pointer from a raw pointer
+// any pointers constructed in this way have a not-null controlBlock, unless bad_alloc is thrown
+{
+    controlBlock = new ControlBlock<DataType>(rawPointer);
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType>::CooperativePointer(const CooperativePointer<DataType>& srcPointer, bool isWeak)
+// works for both weak pointers and strong pointers
+// normally, controlBlock won't be null
+{
+    controlBlock = srcPointer.controlBlock;
+
+    if ((!isWeak) && (controlBlock != nullptr))
+    {
+        controlBlock->increaseCounter();
+    }
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType>::~CooperativePointer()
+// works for both weak pointers and strong pointers
+{
+    if ((!isWeak) && (controlBlock != nullptr))
+    {
+        controlBlock->decreaseCounter();
+    }
+}
+
+
+template <typename DataType>
+DataType* CooperativePointer<DataType>::getRawPointer()
+// need to assume that controlBlock is not null, which is normally true
+// Observers don't need the pointer be strong
+{
+    return controlBlock->getRawPointer();
+}
+
+
+template <typename DataType>
+unsigned long CooperativePointer<DataType>::getCounter()
+// need to assume that controlBlock is not null, which is normally true
+// Observers don't need the pointer be strong
+{
+    return controlBlock->getCounter();
+}
+
+
+template <typename DataType>
+bool CooperativePointer<DataType>::isUnique()
+// need to assume that controlBlock is not null, which is normally true
+// Observers don't need the pointer be strong
+{
+    if (isWeak)
+    {
+        return false;
+    }
+    return (controlBlock->getCounter() == 1);
+}
+
+
+template <typename DataType>
+void CooperativePointer<DataType>::setRawPointerForThis(DataType* newPointer)
+// need to assume that controlBlock is not null, which is normally true
+// controlBlock will change but is not null, unless bad_alloc is thrown
+// if the pointer is weak, nothing happens
+{
+    if (!isWeak)
+    {
+        controlBlock->decreaseCounter();
+        controlBlock = new ControlBlock<DataType>(newPointer);
+    }
+}
+
+
+template <typename DataType>
+void CooperativePointer<DataType>::setRawPointerForAll(DataType* newPointer)
+// need to assume that controlBlock is not null, which is normally true
+// if the pointer is weak, nothing happens
+{
+    if (!isWeak)
+    {
+        controlBlock->setRawPointer(newPointer);
+    }
+}
+
+
+template <typename DataType>
+void CooperativePointer<DataType>::release()
+// set controlBlock pointing to nullptr to ensure that controlBlock is not null
+// if the pointer is weak, nothing happens
+// TODO have better solution?
+{
+    if (!isWeak)
+    {
+        controlBlock->decreaseCounter();
+        controlBlock = new ControlBlock<DataType>(nullptr);
+    }
+}
+
+
+template <typename DataType>
+DataType& CooperativePointer<DataType>::operator*()
+// need to assume that controlBlock is not null, which is normally true
+// Observers don't need the pointer be strong
+{
+    return *(controlBlock->getRawPointer());
+}
+
+
+template <typename DataType>
+DataType* CooperativePointer<DataType>::operator->()
+// need to assume that controlBlock is not null, which is normally true
+// Observers don't need the pointer be strong
+{
+    return controlBlock->getRawPointer();
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType>::operator bool()
+// need to assume that controlBlock is not null, which is normally true
+// Observers don't need the pointer be strong
+{
+    return (controlBlock->getRawPointer() != nullptr);
+}
 
 #endif    // SMARTPOINTER_HPP
