@@ -97,6 +97,7 @@ public:
     // Operators
     DataType& operator*();
     DataType* operator->();
+    CooperativePointer<DataType>&operator=(CooperativePointer<DataType> another);
     operator bool();
 
 private:
@@ -132,6 +133,7 @@ public:
     DataType& operator*();
     DataType* operator->();
     DataType operator[](int index);
+    CooperativePointer<DataType[]>&operator=(CooperativePointer<DataType[]> another);
     operator bool();
 
 private:
@@ -591,6 +593,20 @@ DataType* CooperativePointer<DataType>::operator->()
 
 
 template <typename DataType>
+CooperativePointer<DataType>& CooperativePointer<DataType>::operator=(CooperativePointer<DataType> another)
+// need to assume that controlBlock is not null, which is normally true
+// release first
+// will be strong after the assignment
+{
+    release();
+    controlBlock = another.controlBlock;
+    controlBlock->increaseCounter();
+    isWeak = false;
+    return *this;
+}
+
+
+template <typename DataType>
 CooperativePointer<DataType>::operator bool()
 // need to assume that controlBlock is not null, which is normally true
 // Observers don't need the pointer be strong
@@ -704,6 +720,16 @@ template <typename DataType>
 DataType CooperativePointer<DataType[]>::operator[](int index)
 {
     return controlBlock->getRawPointer()[index];
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType[]>& CooperativePointer<DataType[]>::operator=(CooperativePointer<DataType[]> another) {
+    release();
+    controlBlock = another.controlBlock;
+    controlBlock->increaseCounter();
+    isWeak = false;
+    return *this;
 }
 
 
