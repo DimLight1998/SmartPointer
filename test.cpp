@@ -40,5 +40,7 @@ int main()
     CooperativePointer<int> icw(ic2, true);
     cout << icw.getCounter() << endl;
 
+    CooperativePointer<int[]> cpint(new int[6]);
+    CooperativePointer<int[]> cpint2(cpint);
     return 0;
 }

@@ -106,12 +106,37 @@ private:
 
 
 // TODO: finish this
+// TODO: add assignment
 template <typename DataType>
 class CooperativePointer<DataType[]>
 {
 public:
+    // Constructors
+    CooperativePointer(DataType* rawPointer = nullptr);
+    CooperativePointer(const CooperativePointer<DataType[]>& srcPointer = nullptr, bool isWeak = false);
+
+    // Destructors
+    ~CooperativePointer();
+
+    // Observers
+    DataType*     getRawPointer();
+    unsigned long getCounter();
+    bool          isUnique();
+
+    // Modifiers
+    void setRawPointerForThis(DataType* newPointer);
+    void setRawPointerForAll(DataType* newPointer);
+    void release();
+
+    // Operators
+    DataType& operator*();
+    DataType* operator->();
+    DataType operator[](int index);
+    operator bool();
+
 private:
     ControlBlock<DataType[]>* controlBlock;
+    bool                      isWeak;
 };
 
 
@@ -569,6 +594,121 @@ template <typename DataType>
 CooperativePointer<DataType>::operator bool()
 // need to assume that controlBlock is not null, which is normally true
 // Observers don't need the pointer be strong
+{
+    return (controlBlock->getRawPointer() != nullptr);
+}
+
+// CooperativePointer<DataType[]>
+
+template <typename DataType>
+CooperativePointer<DataType[]>::CooperativePointer(DataType* rawPointer)
+{
+    controlBlock = new ControlBlock<DataType[]>(rawPointer);
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType[]>::CooperativePointer(const CooperativePointer<DataType[]>& srcPointer, bool isWeak)
+{
+    controlBlock = srcPointer.controlBlock;
+
+    if ((!isWeak) && (controlBlock != nullptr))
+    {
+        controlBlock->increaseCounter();
+    }
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType[]>::~CooperativePointer()
+{
+    if ((!isWeak) && (controlBlock != nullptr))
+    {
+        controlBlock->decreaseCounter();
+    }
+}
+
+
+template <typename DataType>
+DataType* CooperativePointer<DataType[]>::getRawPointer()
+{
+    return controlBlock->getRawPointer();
+}
+
+
+template <typename DataType>
+unsigned long CooperativePointer<DataType[]>::getCounter()
+{
+    return controlBlock->getCounter();
+}
+
+
+template <typename DataType>
+bool CooperativePointer<DataType[]>::isUnique()
+{
+    if (isWeak)
+    {
+        return false;
+    }
+    return (controlBlock->getCounter() == 1);
+}
+
+
+template <typename DataType>
+void CooperativePointer<DataType[]>::setRawPointerForThis(DataType* newPointer)
+{
+    if (!isWeak)
+    {
+        controlBlock->decreaseCounter();
+        controlBlock = new ControlBlock<DataType[]>(newPointer);
+    }
+}
+
+
+template <typename DataType>
+void CooperativePointer<DataType[]>::setRawPointerForAll(DataType* newPointer)
+{
+    if (!isWeak)
+    {
+        controlBlock->setRawPointer(newPointer);
+    }
+}
+
+
+template <typename DataType>
+void CooperativePointer<DataType[]>::release()
+{
+    if (!isWeak)
+    {
+        controlBlock->decreaseCounter();
+        controlBlock = new ControlBlock<DataType[]>(nullptr);
+    }
+}
+
+
+template <typename DataType>
+DataType& CooperativePointer<DataType[]>::operator*()
+{
+    return *(controlBlock->getRawPointer());
+}
+
+
+template <typename DataType>
+DataType* CooperativePointer<DataType[]>::operator->()
+{
+    return controlBlock->getRawPointer();
+}
+
+
+template <typename DataType>
+DataType CooperativePointer<DataType[]>::operator[](int index)
+{
+    return controlBlock->getRawPointer()[index];
+}
+
+
+template <typename DataType>
+CooperativePointer<DataType[]>::operator bool()
 {
     return (controlBlock->getRawPointer() != nullptr);
 }
