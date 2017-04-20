@@ -33,6 +33,7 @@ public:
     operator bool();
     DataType& operator*();
     DataType* operator->();
+    ExclusivePointer<DataType>& operator=(ExclusivePointer<DataType>) = delete;
 
 private:
     DataType* rawPointer;
@@ -64,6 +65,7 @@ public:
     DataType& operator*();
     DataType& operator[](int index);
     DataType* operator->();
+    ExclusivePointer<DataType[]>& operator=(ExclusivePointer<DataType[]>) = delete;
 
 private:
     DataType* rawPointer;
