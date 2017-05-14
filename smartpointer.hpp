@@ -72,14 +72,13 @@ private:
 };
 
 
-// TODO: finish this
 template <typename DataType>
 class CooperativePointer
 {
 public:
     // Constructors
     CooperativePointer(DataType* rawPointer = nullptr);
-    CooperativePointer(const CooperativePointer<DataType>& srcPointer = nullptr, bool isWeak = false);
+    CooperativePointer(const CooperativePointer<DataType>& srcPointer, bool isWeak = false);
 
     // Destructors
     ~CooperativePointer();
@@ -97,7 +96,7 @@ public:
     // Operators
     DataType& operator*();
     DataType* operator->();
-    CooperativePointer<DataType>&operator=(CooperativePointer<DataType> another);
+    CooperativePointer<DataType>& operator=(CooperativePointer<DataType> another);
     operator bool();
 
 private:
@@ -106,15 +105,13 @@ private:
 };
 
 
-// TODO: finish this
-// TODO: add assignment
 template <typename DataType>
 class CooperativePointer<DataType[]>
 {
 public:
     // Constructors
     CooperativePointer(DataType* rawPointer = nullptr);
-    CooperativePointer(const CooperativePointer<DataType[]>& srcPointer = nullptr, bool isWeak = false);
+    CooperativePointer(const CooperativePointer<DataType[]>& srcPointer, bool isWeak = false);
 
     // Destructors
     ~CooperativePointer();
@@ -132,8 +129,8 @@ public:
     // Operators
     DataType& operator*();
     DataType* operator->();
-    DataType operator[](int index);
-    CooperativePointer<DataType[]>&operator=(CooperativePointer<DataType[]> another);
+    DataType& operator[](int        index);
+    CooperativePointer<DataType[]>& operator=(CooperativePointer<DataType[]> another);
     operator bool();
 
 private:
@@ -564,7 +561,6 @@ template <typename DataType>
 void CooperativePointer<DataType>::release()
 // set controlBlock pointing to nullptr to ensure that controlBlock is not null
 // if the pointer is weak, nothing happens
-// TODO have better solution?
 {
     if (!isWeak)
     {
@@ -717,14 +713,15 @@ DataType* CooperativePointer<DataType[]>::operator->()
 
 
 template <typename DataType>
-DataType CooperativePointer<DataType[]>::operator[](int index)
+DataType& CooperativePointer<DataType[]>::operator[](int index)
 {
-    return controlBlock->getRawPointer()[index];
+    return (controlBlock->getRawPointer())[index];
 }
 
 
 template <typename DataType>
-CooperativePointer<DataType[]>& CooperativePointer<DataType[]>::operator=(CooperativePointer<DataType[]> another) {
+CooperativePointer<DataType[]>& CooperativePointer<DataType[]>::operator=(CooperativePointer<DataType[]> another)
+{
     release();
     controlBlock = another.controlBlock;
     controlBlock->increaseCounter();
